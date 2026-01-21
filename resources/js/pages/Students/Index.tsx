@@ -1,11 +1,18 @@
-import React from 'react';
-import { Link, usePage, router } from '@inertiajs/react';
+// @ts-ignore
 
-// 1. Data ki shape (Interfaces)
+import React from 'react';
+import { Link, usePage, router, Head } from '@inertiajs/react';
+
+// Interfaces match Backend JSON Structure
 interface SchoolClass {
     id: number;
     class_name: string;
     section_name?: string;
+}
+
+interface TransportRoute {
+    id: number;
+    route_title: string;
 }
 
 interface Student {
@@ -13,15 +20,18 @@ interface Student {
     admission_no: string;
     full_name: string;
     father_name: string;
-    phone: string;
+    father_phone: string; // Backend mein hum 'father_phone' use kar rahe hain (Check Create.tsx)
+    phone?: string;       // Fallback
     school_class: SchoolClass;
+    transport?: TransportRoute;
+    is_active: number;
 }
 
-// Yahan '[key: string]: any' ka izafa kiya hai error khatam karne ke liye
 interface PageProps {
     students: {
         data: Student[];
-        links: any[];
+        links: any[]; // Pagination links
+        total: number;
     };
     classes: SchoolClass[];
     filters: {
@@ -32,46 +42,45 @@ interface PageProps {
 }
 
 export default function Index() {
-    // 2. Type-safe props access
     const { students, classes, filters } = usePage<PageProps>().props;
 
-    // Search Handler (As per video demo functionality)
+    // Search Logic (Debounce recommended but direct for MVP)
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        router.get('/students', 
+        router.get(route('students.index'), 
             { search: e.target.value, class_id: filters.class_id }, 
-            { preserveState: true }
+            { preserveState: true, replace: true }
         );
     };
 
-    // Filter Handler
-    const handleClassFilter = (id: string) => {
-        router.get('/students', 
-            { search: filters.search, class_id: id }, 
+    const handleClassFilter = (classId: string) => {
+        router.get(route('students.index'), 
+            { search: filters.search, class_id: classId }, 
             { preserveState: true }
         );
     };
 
     return (
         <div className="min-h-screen bg-gray-50 p-6 md:p-10">
+            <Head title="Students Directory" />
+            
             <div className="max-w-7xl mx-auto">
-                
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                {/* --- Header & Actions --- */}
+                <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
                     <div>
-                        <h2 className="text-2xl font-black text-blue-900 uppercase tracking-tight">Student Directory</h2>
-                        <p className="text-gray-500 text-sm">Paradise Public Girls Elementary School</p>
+                        <h2 className="text-2xl font-black text-gray-800">STUDENTS LIST</h2>
+                        <p className="text-sm text-gray-500">Total Records: {students.total}</p>
                     </div>
-                    
-                    <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 mt-6 md:mt-0 w-full md:w-auto">
+
+                    <div className="flex gap-3 mt-4 md:mt-0 w-full md:w-auto">
                         <input 
                             type="text" 
-                            placeholder="Search Name or ID..." 
-                            className="border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 w-full md:w-64"
+                            placeholder="Search by Name/ID..." 
+                            className="border-gray-300 rounded-lg shadow-sm focus:ring-blue-500"
                             defaultValue={filters.search}
                             onChange={handleSearch}
                         />
                         <select 
-                            className="border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                            className="border-gray-300 rounded-lg shadow-sm focus:ring-blue-500"
                             value={filters.class_id || ''}
                             onChange={(e) => handleClassFilter(e.target.value)}
                         >
@@ -80,50 +89,65 @@ export default function Index() {
                                 <option key={c.id} value={c.id}>{c.class_name}</option>
                             ))}
                         </select>
-                        <Link 
-                            href="/students/create" 
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md transition-all text-center"
-                        >
-                            + New Admission
+                        <Link href={route('students.create')} className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold shadow hover:bg-blue-700">
+                            + New
                         </Link>
                     </div>
                 </div>
 
-                {/* Table Section (Strictly following Video Attributes) */}
-                <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
+                {/* --- Data Table --- */}
+                <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-blue-50">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Adm. No</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Student Name</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Class (Section)</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Father Name</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-blue-900 uppercase tracking-wider">Contact</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-blue-900 uppercase tracking-wider">Actions</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Info</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Father Details</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Class</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Transport</th>
+                                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-100">
-                                {students.data.length > 0 ? students.data.map((student) => (
-                                    <tr key={student.id} className="hover:bg-blue-50/50 transition duration-150">
-                                        <td className="px-6 py-4 whitespace-nowrap font-black text-blue-700">#{student.admission_no}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{student.full_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            <span className="bg-gray-100 px-2 py-1 rounded text-xs font-semibold">
-                                                {student.school_class.class_name} ({student.school_class.section_name || 'N/A'})
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {students.data.length > 0 ? students.data.map((std) => (
+                                    <tr key={std.id} className="hover:bg-blue-50 transition">
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-gray-900">{std.full_name}</div>
+                                            <div className="text-xs text-blue-600 font-mono">#{std.admission_no}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-gray-900">{std.father_name}</div>
+                                            <div className="text-xs text-gray-500">{std.phone || std.father_phone || 'N/A'}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="px-2 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-800">
+                                                {std.school_class.class_name}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{student.father_name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">{student.phone || '---'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-3">
-                                            <button className="text-blue-600 hover:text-blue-800 font-bold">View</button>
-                                            <button className="text-green-600 hover:text-green-800 font-bold">Fee Card</button>
-                                            <button className="text-red-600 hover:text-red-800 font-bold">Edit</button>
+                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                            {std.transport ? (
+                                                <span className="flex items-center gap-1 text-orange-600 font-medium">
+                                                    🚌 {std.transport.route_title}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-400 text-xs">Self</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-center space-x-2">
+                                            <Link href={route('fee.card', std.id)} className="text-green-600 hover:underline text-sm font-bold">
+                                                Fee Card
+                                            </Link>
+                                            <span className="text-gray-300">|</span>
+                                            <a href={route('students.id_cards', { class_id: std.school_class.id })} target="_blank" className="text-blue-600 hover:underline text-sm font-bold">
+                                                ID Card
+                                            </a>
                                         </td>
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-10 text-center text-gray-500 italic">No student records found.</td>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic">
+                                            No students found matching your criteria.
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>
