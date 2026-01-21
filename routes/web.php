@@ -97,7 +97,7 @@ Route::middleware([
         Route::post('/store', [ExamController::class, 'store'])->name('store');
         Route::get('/marks-entry', [ExamController::class, 'marksEntry'])->name('marks_entry');
         Route::post('/save-marks', [ExamController::class, 'saveMarks'])->name('save_marks');
-        
+
         // Reports (PDFs)
         Route::get('/result-card/{exam_id}/{student_id}', [ExamController::class, 'generateResultCard'])->name('result_card');
         Route::get('/tabulation', [ExamController::class, 'tabulationSheet'])->name('tabulation');
@@ -110,7 +110,7 @@ Route::middleware([
         Route::get('/salaries', [SalaryController::class, 'index'])->name('salaries');
         Route::post('/salaries/generate', [SalaryController::class, 'generate'])->name('salaries.generate');
         Route::post('/salaries/pay/{id}', [SalaryController::class, 'pay'])->name('salaries.pay');
-        
+
         Route::get('/loans', [StaffLoanController::class, 'index'])->name('loans');
         Route::post('/loans/store', [StaffLoanController::class, 'store'])->name('loans.store');
     });
@@ -141,13 +141,13 @@ Route::middleware([
     Route::prefix('communication')->name('communication.')->group(function () {
         Route::get('/diary', [DiaryController::class, 'index'])->name('diary.index');
         Route::post('/diary', [DiaryController::class, 'store'])->name('diary.store');
-        
+
         Route::get('/sms-logs', [SmsLogController::class, 'index'])->name('sms.index');
         Route::post('/sms-send', [SmsLogController::class, 'sendCustom'])->name('sms.send');
-        
+
         Route::get('/notices', [NoticeController::class, 'index'])->name('notices.index');
         Route::post('/notices', [NoticeController::class, 'store'])->name('notices.store');
-        
+
         Route::get('/leaves', [LeaveApplicationController::class, 'index'])->name('leaves.index');
         Route::post('/leaves', [LeaveApplicationController::class, 'store'])->name('leaves.store'); // Apply
         Route::post('/leaves/{id}', [LeaveApplicationController::class, 'updateStatus'])->name('leaves.update'); // Approve/Reject
@@ -158,13 +158,13 @@ Route::middleware([
         Route::get('/timetable', [TimeTableController::class, 'index'])->name('timetable.index');
         Route::post('/timetable', [TimeTableController::class, 'store'])->name('timetable.store');
         Route::delete('/timetable/{id}', [TimeTableController::class, 'destroy'])->name('timetable.destroy');
-        
+
         Route::get('/online-classes', [OnlineClassController::class, 'index'])->name('online_classes.index');
         Route::post('/online-classes', [OnlineClassController::class, 'store'])->name('online_classes.store');
-        
+
         Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index');
         Route::post('/certificates/generate', [CertificateController::class, 'generate'])->name('certificates.generate'); // PDF
-        
+
         Route::get('/study-material', [StudyMaterialController::class, 'index'])->name('study_material.index');
         Route::post('/study-material', [StudyMaterialController::class, 'store'])->name('study_material.store');
     });
@@ -181,12 +181,21 @@ Route::middleware([
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/campuses', [CampusController::class, 'index'])->name('campuses');
         Route::post('/campuses', [CampusController::class, 'store'])->name('campuses.store');
-        
+
         Route::get('/general', [SettingController::class, 'index'])->name('general');
         Route::post('/general', [SettingController::class, 'update'])->name('general.update');
-        
+
         Route::get('/roles', [RolePermissionController::class, 'index'])->name('roles');
         Route::post('/roles', [RolePermissionController::class, 'update'])->name('roles.update');
     });
 
 });
+Route::post('/pay-cash/{invoice}', [FeeController::class, 'payCash'])->name('pay_cash');
+
+// Add this line inside prefix('fees') group
+Route::get('/collect/{id}', function ($id) {
+    // Invoice load karo aur Student data ke sath bhejo
+    $invoice = \App\Models\FeeInvoice::with(['student.schoolClass', 'feeType'])->findOrFail($id);
+    return Inertia::render('Fees/Collect', ['invoice' => $invoice]);
+})->name('collect');
+Route::post('/fees/pay-cash/{id}', [FeeController::class, 'payCash'])->name('fees.pay_cash');

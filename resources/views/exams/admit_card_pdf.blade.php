@@ -14,6 +14,16 @@
             text-align: center;
             text-decoration: underline;
             font-weight: bold;
+            font-size: 18px;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        td {
+            padding: 5px;
         }
     </style>
 </head>
@@ -24,7 +34,7 @@
             <h2 style="text-align: center; margin: 0;">{{ $school_name }}</h2>
             <p class="title">ROLL NUMBER SLIP - {{ $exam->exam_title }}</p>
 
-            <table width="100%">
+            <table>
                 <tr>
                     <td><strong>Name:</strong> {{ $student->full_name }}</td>
                     <td><strong>Roll No:</strong> {{ $student->roll_no }}</td>
@@ -35,7 +45,9 @@
                 </tr>
             </table>
             <br>
-            <p><strong>Instructions:</strong> Please bring this slip daily during exams.</p>
+            <p><strong>Note:</strong> Students must bring this slip to the examination hall.</p>
+            <br><br>
+            <div style="text-align: right;">____________________<br>Principal</div>
         </div>
     @endforeach
 </body>

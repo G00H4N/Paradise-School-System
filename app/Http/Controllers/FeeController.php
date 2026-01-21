@@ -193,4 +193,40 @@ class FeeController extends Controller
         $pdf = Pdf::loadView('fees.family_challan_pdf', $data);
         return $pdf->stream("Family-Challan-{$parent->cnic}.pdf");
     }
+    // Add this inside FeeController class
+// ✅ NEW: Cash Payment Collection Logic
+    public function payCash(Request $request, $id)
+    {
+        $invoice = FeeInvoice::findOrFail($id);
+
+        $request->validate([
+            'amount_paid' => 'required|numeric|min:1',
+            'payment_method' => 'required|string'
+        ]);
+
+        DB::transaction(function () use ($invoice, $request) {
+            // Update Paid Amount
+            $invoice->paid_amount += $request->amount_paid;
+
+            // Status Update Logic
+            $payable = $invoice->total_amount - $invoice->discount_amount;
+            if ($invoice->paid_amount >= $payable) {
+                $invoice->status = 'paid';
+            } else {
+                $invoice->status = 'partial';
+            }
+            $invoice->save();
+
+            // Record Transaction
+            FeePayment::create([
+                'fee_invoice_id' => $invoice->id,
+                'amount_paid' => $request->amount_paid,
+                'payment_method' => $request->payment_method, // 'Cash', 'Cheque' etc.
+                'payment_date' => $request->payment_date ?? now(),
+                'received_by' => auth()->id()
+            ]);
+        });
+
+        return redirect()->route('fees.index')->with('success', 'Payment Collected Successfully!');
+    }
 }
